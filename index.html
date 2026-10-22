@@ -10,6 +10,11 @@
     --txt:#e6edf3; --dim:#8b98a5; --accent:#2f81f7;
     --ok:#3fb950; --warn:#d29922; --bad:#f85149; --info:#58a6ff;
   }
+  :root[data-theme="light"]{
+    --bg:#f6f8fa; --panel:#ffffff; --panel2:#f6f8fa; --line:#d0d7de;
+    --txt:#1f2328; --dim:#656d76; --accent:#0969da;
+    --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e; --info:#0969da;
+  }
   *{box-sizing:border-box}
   body{
     margin:0; color:var(--txt); font:14px/1.55 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
@@ -150,6 +155,51 @@
   .btn.danger:hover:not(:disabled){background:#e5534b}
   .syncbar{color:#e3b341;font-size:12px}
   .mini-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-4px 2px 12px}
+
+  /* 浅色主题覆盖写死颜色的元素 */
+  :root[data-theme="light"] body{background:radial-gradient(1100px 520px at 85% -10%, #dddee155, transparent), var(--bg)}
+  :root[data-theme="light"] .logo{box-shadow:0 0 0 1px #ffffff, 0 8px 24px #1f6feb22}
+  :root[data-theme="light"] .logo:after{border-color:#dbe9ff;border-right-color:transparent}
+  :root[data-theme="light"] code,.mono{color:#0969da;background:#ddf4ff}
+  :root[data-theme="light"] input[type=text],input[type=password]{background:var(--panel2);border-color:var(--line);color:var(--txt)}
+  :root[data-theme="light"] .btn{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
+  :root[data-theme="light"] .btn:hover:not(:disabled){background:#f3f4f6}
+  :root[data-theme="light"] .btn.primary{background:#0969da;border-color:#0969da;color:#fff}
+  :root[data-theme="light"] .btn.primary:hover:not(:disabled){background:#0550ae}
+  :root[data-theme="light"] .btn.ghost{background:transparent;color:#656d76}
+  :root[data-theme="light"] .btn.danger{background:#cf222e;border-color:#cf222e;color:#fff}
+  :root[data-theme="light"] .chip{background:#fff;border-color:#d0d7de;color:#656d76}
+  :root[data-theme="light"] .chip .dot{background:#6e7781}
+  :root[data-theme="light"] .card{background:#fff;border-color:#d0d7de}
+  :root[data-theme="light"] .badge.ok{color:#1a7f37;background:#dafbe1;border-color:#9aefb2}
+  :root[data-theme="light"] .badge.warn{color:#9a6700;background:#fff8c5;border-color:#f0c000}
+  :root[data-theme="light"] .badge.bad{color:#cf222e;background:#ffebe9;border-color:#ffc2c0}
+  :root[data-theme="light"] .badge.info{color:#0969da;background:#ddf4ff;border-color:#54aeff}
+  :root[data-theme="light"] .badge.dim{color:#656d76;background:#f6f8fa;border-color:#d0d7de}
+  :root[data-theme="light"] .line .mono{color:#0969da}
+  :root[data-theme="light"] .note{color:#1f2328;background:#ddf4ff;border-left-color:#0969da}
+  :root[data-theme="light"] .note.bad{border-left-color:#cf222e;background:#ffebe9}
+  :root[data-theme="light"] .note.warn{border-left-color:#9a6700;background:#fff8c5}
+  :root[data-theme="light"] .repo-row{border-bottom-color:#d0d7de}
+  :root[data-theme="light"] .empty code{color:#0969da}
+  :root[data-theme="light"] pre#log{background:#f6f8fa;border-color:#d0d7de;color:#656d76}
+  :root[data-theme="light"] pre#log .t{color:#656d76}
+  :root[data-theme="light"] pre#log .ok{color:#1a7f37}
+  :root[data-theme="light"] pre#log .err{color:#cf222e}
+  :root[data-theme="light"] pre#log .info{color:#0969da}
+  :root[data-theme="light"] footer{border-top-color:#d0d7de;color:#656d76}
+  :root[data-theme="light"] .toast{background:#fff;border-color:#d0d7de;color:#1f2328;box-shadow:0 10px 30px #0001}
+  :root[data-theme="light"] .modal{background:#fff;border-color:#d0d7de;box-shadow:0 24px 60px #0001}
+  :root[data-theme="light"] .modal-body{color:#1f2328}
+  :root[data-theme="light"] .modal-body .dim{color:#656d76}
+  :root[data-theme="light"] .modal-list{background:#f6f8fa;border-color:#d0d7de;color:#1f2328}
+  :root[data-theme="light"] .overlay{background:#0004}
+  :root[data-theme="light"] .hint code{background:#ddf4ff;color:#0969da}
+  :root[data-theme="light"] .dim b{color:#1f2328}
+  :root[data-theme="light"] .chip.ok b{color:#1a7f37}
+  :root[data-theme="light"] .chip.warn b{color:#9a6700}
+  :root[data-theme="light"] .chip.bad b{color:#cf222e}
+  :root[data-theme="light"] .syncbar{color:#9a6700}
 </style>
 </head>
 <body>
@@ -162,6 +212,10 @@
         <h1>Github Fork同步看板工具</h1>
         <p class="sub">扫描你的全部仓库 · 区分 fork 与自建 · 一键快进</p>
       </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn ghost tiny" id="btn-export" title="导出当前扫描结果为 CSV">⬇ 导出 CSV</button>
+      <button class="btn ghost tiny" id="btn-theme" title="切换深色 / 浅色主题">🌙</button>
     </div>
     <div id="account" class="account"></div>
   </header>
@@ -206,7 +260,7 @@
 
   <footer>
     <span id="rate">API 限额：—</span>
-    <span>v1.0.0 · 所有请求只发往 api.github.com；令牌不会离开本机。</span>
+    <span>v1.1.0 · 所有请求只发往 api.github.com；令牌不会离开本机。</span>
   </footer>
 </div>
 
@@ -233,6 +287,7 @@
   var LS_CACHE = 'forksync.cache2';
   var LS_ORG = 'forksync.org';
   var LS_IGNORE = 'forksync.ignore';
+  var LS_THEME = 'forksync.theme';
   var CACHE_TTL = 10 * 60 * 1000;
 
   var STATUS = {
@@ -1382,6 +1437,87 @@
     render();
   }
 
+  /* ---------- 主题切换 ---------- */
+  function applyTheme(t) {
+    var light = t === 'light';
+    if (light) document.documentElement.setAttribute('data-theme', 'light');
+    else document.documentElement.removeAttribute('data-theme');
+    var btn = $('#btn-theme');
+    if (btn) btn.textContent = light ? '☀️' : '🌙';
+    try { localStorage.setItem(LS_THEME, light ? 'light' : 'dark'); } catch (e) { /* ignore */ }
+  }
+
+  function toggleTheme() {
+    var current = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    applyTheme(current);
+    log('主题切换为 ' + (current === 'light' ? '浅色' : '深色'), 'info');
+  }
+
+  function initTheme() {
+    var saved = '';
+    try { saved = localStorage.getItem(LS_THEME) || ''; } catch (e) { /* ignore */ }
+    if (!saved) {
+      // 跟随系统
+      saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    }
+    applyTheme(saved);
+  }
+
+  /* ---------- CSV 导出 ---------- */
+  function csvEscape(v) {
+    var s = v === null || v === undefined ? '' : String(v);
+    if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function exportCSV() {
+    if (!allItems().length && !S.selfMade.length) {
+      toast('还没有扫描数据，先点「扫描我的全部仓库」', 'err');
+      return;
+    }
+    var headers = ['类型', '仓库', '上游', '默认分支', '上游分支', '状态', '落后', '独有', '上游最后推送', '本仓库最后推送', '检测时间'];
+    var rows = [];
+
+    allItems().forEach(function (it) {
+      var s = it.status || {};
+      rows.push([
+        it.kind === 'copy' ? '副本' : 'fork',
+        it.repo,
+        it.upstream || '',
+        it.branch || '',
+        it.upBranch || '',
+        (STATUS[s.state] || { text: s.state || '' }).text || s.state || '',
+        s.behind != null ? s.behind : '',
+        s.ahead != null ? s.ahead : '',
+        it.upPushedAt || '',
+        it.pushedAt || '',
+        it.checkedAt ? new Date(it.checkedAt).toISOString() : ''
+      ]);
+    });
+
+    S.selfMade.forEach(function (r) {
+      rows.push([
+        '自建',
+        r.repo, '', '', '', '—', '', '', '', r.pushedAt || '', ''
+      ]);
+    });
+
+    var lines = [headers.map(csvEscape).join(',')].concat(rows.map(function (r) { return r.map(csvEscape).join(','); }));
+    var bom = '\uFEFF'; // 让 Excel 正确识别 UTF-8
+    var blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.href = url;
+    a.download = 'fork-sync-' + ts + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    toast('已导出 ' + rows.length + ' 条记录', 'ok');
+    log('导出 CSV：' + rows.length + ' 条', 'ok');
+  }
+
   /* ---------- 事件 ---------- */
   function bind() {
     $('#token').addEventListener('input', function (e) {
@@ -1399,6 +1535,8 @@
       try { localStorage.setItem(LS_ORG, S.includeOrg ? '1' : '0'); } catch (err) { /* ignore */ }
     });
     $('#btn-scan').addEventListener('click', scan);
+    $('#btn-theme').addEventListener('click', toggleTheme);
+    $('#btn-export').addEventListener('click', exportCSV);
 
     document.addEventListener('click', function (ev) {
       var btn = ev.target.closest('[data-act]');
@@ -1499,6 +1637,7 @@
   }
 
   load();
+  initTheme();
   logEl = $('#log');
   toastEl = $('#toast');
   bind();

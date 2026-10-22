@@ -2,7 +2,7 @@
 
 > 一次扫描，看清所有 fork 谁落后了；勾选、批量快进，支持暂停 / 停止 / 取消。
 
-![version](https://img.shields.io/badge/version-1.0.0-blue)
+![version](https://img.shields.io/badge/version-1.1.0-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![single file](https://img.shields.io/badge/single--file-yes-9cf)
@@ -114,6 +114,14 @@ GitHub 自带的 **Sync fork** 一次只能点一个仓库。当你 fork 了几�
 - 令牌只存在浏览器 `localStorage`（可不勾"记住"，只留在内存）
 - 所有请求只发往 `api.github.com`
 - 可以只给细粒度令牌勾选指定仓库，把权限压到最小
+
+### 11. 深色 / 浅色主题一键切换
+
+右上角 🌙/☀️ 按钮切换主题，首次打开跟随系统偏好，之后记忆选择到 localStorage。浅色主题使用 GitHub 官方浅色调色板，卡片、徽章、日志、弹窗全部适配。
+
+### 12. 一键导出扫描结果为 CSV
+
+右上角 ⬇ 导出 CSV，包含所有 fork / 副本 / 自建仓库的完整信息：类型、仓库、上游、分支、状态、落后 / 独有提交数、推送时间、检测时间。文件带 UTF-8 BOM，Excel 直接打开不乱码，文件名自动带时间戳。
 
 ---
 
@@ -260,8 +268,8 @@ fork-sync/
 
 ## Roadmap
 
-- [ ] 深色/浅色主题切换
-- [ ] 导出扫描结果为 CSV
+- [x] 深色/浅色主题切换（v1.1）
+- [x] 导出扫描结果为 CSV（v1.1）
 - [ ] 一键为选中仓库生成 Actions 配置文件
 - [ ] 支持 GitHub Enterprise 域名
 - [ ] 定时检查（配合 GitHub Actions 或本地计划任务）
