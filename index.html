@@ -1,0 +1,1516 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Github Fork同步看板工具</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#111821; --panel2:#0e141b; --line:#22303f;
+    --txt:#e6edf3; --dim:#8b98a5; --accent:#2f81f7;
+    --ok:#3fb950; --warn:#d29922; --bad:#f85149; --info:#58a6ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; color:var(--txt); font:14px/1.55 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    background:radial-gradient(1100px 520px at 85% -10%, #16324a55, transparent), var(--bg);
+  }
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+  a{color:var(--info); text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1160px; margin:0 auto; padding:22px 18px 70px}
+
+  header.top{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:16px}
+  .brand{display:flex; align-items:center; gap:12px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(140deg,#2f81f7,#1f6feb 60%,#0b3d91);
+        box-shadow:0 0 0 1px #ffffff18, 0 8px 24px #1f6feb44; position:relative; flex:none}
+  .logo:after{content:"";position:absolute;inset:9px;border:2px solid #dbe9ff;border-radius:50%;border-right-color:transparent}
+  h1{font-size:18px;margin:0;letter-spacing:.2px}
+  .sub{margin:2px 0 0;color:var(--dim);font-size:12px}
+
+  .account{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim);min-height:34px}
+  .avatar{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);flex:none}
+  .account b{color:var(--txt);font-size:13px;font-weight:600}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .field.grow{flex:1 1 260px}
+  label{font-size:12px;color:var(--dim)}
+  input[type=text],input[type=password]{
+    width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;padding:9px 11px;font:inherit;outline:none
+  }
+  input:focus{border-color:#2f81f7;box-shadow:0 0 0 3px #2f81f722}
+  .check{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:12px;padding-bottom:9px;white-space:nowrap}
+  .hint{color:var(--dim);font-size:12px;margin-top:9px;line-height:1.7}
+  .hint code{background:#ffffff10;padding:1px 5px;border-radius:4px;color:#c7d2dd}
+
+  .btn{appearance:none;border:1px solid var(--line);background:#182231;color:var(--txt);
+    padding:8px 13px;border-radius:8px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap;
+    transition:.15s border-color,.15s background,.15s transform; text-decoration:none; display:inline-block}
+  .btn:hover:not(:disabled){background:#1d2839;border-color:#31445c;text-decoration:none}
+  .btn:active:not(:disabled){transform:translateY(1px)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.primary{background:#1f6feb;border-color:#2f81f7;color:#fff}
+  .btn.primary:hover:not(:disabled){background:#2b7bf3}
+  .btn.ghost{background:transparent;color:var(--dim)}
+  .btn.ghost:hover:not(:disabled){color:var(--txt)}
+  .btn.tiny{padding:5px 10px;font-size:12px}
+
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+  .chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12px;color:var(--dim)}
+  .chip b{color:var(--txt);font-size:13px;margin-left:3px}
+  .chip.warn b{color:#e3b341}
+  .chip.ok b{color:#7ee787}
+  .chip.bad b{color:#ff7b72}
+  .chip .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+
+  .sec{margin-bottom:16px}
+  .sec-head{display:flex;align-items:baseline;gap:10px;margin:0 2px 10px}
+  .sec-head h2{font-size:14px;margin:0;font-weight:600;letter-spacing:.2px}
+  .sec-head .count{color:var(--dim);font-size:12px}
+  .sec-head .note{color:#5f6f7f;font-size:12px;margin-left:auto}
+
+  details.sec{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  details.sec>summary{cursor:pointer;list-style:none;font-size:13px;color:var(--dim);user-select:none;display:flex;align-items:center;gap:8px}
+  details.sec>summary::-webkit-details-marker{display:none}
+  details.sec>summary:before{content:"▸";font-size:11px;color:#5f6f7f;transition:.15s}
+  details.sec[open]>summary:before{transform:rotate(90deg)}
+  details.sec[open]>summary{margin-bottom:12px}
+  details.sec>summary b{color:var(--txt)}
+
+  .list{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(360px,1fr))}
+  .card{background:linear-gradient(180deg,#131c26,#101821);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:9px;min-width:0}
+  .card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .repo{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .badge{flex:none;font-size:11px;padding:2px 9px;border-radius:999px;border:1px solid transparent;letter-spacing:.3px}
+  .badge.ok{color:#7ee787;background:#3fb9501f;border-color:#3fb95040}
+  .badge.warn{color:#e3b341;background:#d299221f;border-color:#d2992240}
+  .badge.bad{color:#ff7b72;background:#f851491f;border-color:#f8514940}
+  .badge.info{color:#79c0ff;background:#388bfd1f;border-color:#388bfd40}
+  .badge.dim{color:var(--dim);background:#ffffff0a;border-color:#ffffff14}
+
+  .line{color:var(--dim);font-size:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;min-width:0}
+  .line .mono{color:#c7d2dd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .metric{font-size:12px;color:var(--dim)}
+  .metric b{color:var(--txt);font-size:13px}
+  .note{font-size:12px;color:#b9c3ce;background:#ffffff08;border-left:2px solid #2f81f7;padding:6px 9px;border-radius:0 6px 6px 0}
+  .note.bad{border-left-color:var(--bad)}
+  .note.warn{border-left-color:var(--warn)}
+  .actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
+
+  .rows{display:flex;flex-direction:column}
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 2px 12px}
+  .toolbar h2{font-size:14px;margin:0;font-weight:600}
+  .toolbar .count{color:var(--dim);font-size:12px}
+  .toolbar .spacer{flex:1}
+  .bulk{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;
+         padding:7px 10px;font:inherit;font-size:13px;outline:none;cursor:pointer}
+  select:focus{border-color:#2f81f7;box-shadow:0 0 0 3px #2f81f722}
+  .pick{width:15px;height:15px;accent-color:#2f81f7;margin:0;flex:none;cursor:pointer}
+  .card-head .repo{flex:1;min-width:0}
+  .pager{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:16px;font-size:12px;color:var(--dim)}
+  .pager .btn{padding:6px 12px}
+  .repo-row{display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid #ffffff08;font-size:13px;min-width:0}
+  .repo-row:last-child{border-bottom:0}
+  .repo-row .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .repo-row .meta{color:#5f6f7f;font-size:11px;margin-left:auto;white-space:nowrap}
+  .repo-row .btn{margin-left:8px}
+
+  .empty{color:var(--dim);font-size:13px;padding:18px;text-align:center;border:1px dashed var(--line);border-radius:12px}
+  .empty code{color:#c7d2dd}
+
+  pre#log{background:#080c11;border:1px solid var(--line);border-radius:10px;padding:11px;height:150px;overflow:auto;
+          margin:0;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.6;color:#9fb0c0}
+  pre#log .t{color:#5b6b7b}
+  pre#log .ok{color:#7ee787}
+  pre#log .err{color:#ff7b72}
+  pre#log .info{color:#79c0ff}
+
+  footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#5f6f7f;font-size:11px;margin-top:14px;
+         border-top:1px solid #ffffff0f;padding-top:12px}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;
+         background:#1c2733;border:1px solid #31445c;color:var(--txt);padding:9px 15px;border-radius:9px;
+         font-size:13px;box-shadow:0 10px 30px #0008;transition:.2s;z-index:50;max-width:80vw}
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+  .progress{color:var(--dim);font-size:12px;padding-bottom:10px}
+
+  .overlay{position:fixed;inset:0;background:#000a;backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;z-index:80;padding:20px}
+  .overlay[hidden]{display:none}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 14px;max-width:560px;width:100%;box-shadow:0 24px 60px #000a}
+  .modal h3{margin:0 0 10px;font-size:15px;word-break:break-all}
+  .modal-body{color:#b9c3ce;font-size:13px;max-height:50vh;overflow:auto}
+  .modal-body p{margin:0 0 8px}
+  .modal-body .dim{color:var(--dim)}
+  .modal-list{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:#0b1118;border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin:8px 0;line-height:1.7}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+  .btn.danger{background:#da3633;border-color:#f85149;color:#fff}
+  .btn.danger:hover:not(:disabled){background:#e5534b}
+  .syncbar{color:#e3b341;font-size:12px}
+  .mini-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-4px 2px 12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>Github Fork同步看板工具</h1>
+        <p class="sub">扫描你的全部仓库 · 区分 fork 与自建 · 一键快进</p>
+      </div>
+    </div>
+    <div id="account" class="account"></div>
+  </header>
+
+  <section class="panel">
+    <div class="row">
+      <div class="field grow">
+        <label for="token">GitHub 令牌（读取仓库列表与同步都需要）</label>
+        <input id="token" type="password" placeholder="github_pat_..." autocomplete="off" spellcheck="false">
+      </div>
+      <label class="check"><input id="remember" type="checkbox"> 记住令牌</label>
+      <label class="check"><input id="org" type="checkbox"> 包含组织仓库</label>
+      <button class="btn primary" id="btn-scan">扫描我的全部仓库</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="field" style="flex:0 1 320px">
+        <label for="filter">过滤仓库名（可选）</label>
+        <input id="filter" type="text" placeholder="输入关键字，例如 typewords" spellcheck="false">
+      </div>
+    </div>
+    <div class="hint">
+      细粒度令牌：<b>Repository access</b> 选 <code>All repositories</code>（要扫描全部就选全部）→
+      <b>Repository permissions</b> → <code>Contents: Read and write</code>、<code>Metadata: Read-only</code>。
+      创建入口：<a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noreferrer">settings/personal-access-tokens/new</a>
+      · 只读扫描只需 <code>Metadata: Read-only</code>，同步按钮会保持禁用。
+    </div>
+    <div class="hint" id="token-status"></div>
+  </section>
+
+  <section id="chips" class="chips"></section>
+
+  <section id="sec-list" class="sec"></section>
+  <section id="sec-self" class="sec"></section>
+  <section id="sec-ignored" class="sec"></section>
+
+  <section class="panel">
+    <details open>
+      <summary style="cursor:pointer;color:var(--dim);font-size:12px;margin-bottom:8px">日志</summary>
+      <pre id="log"></pre>
+    </details>
+  </section>
+
+  <footer>
+    <span id="rate">API 限额：—</span>
+    <span>v1.0.0 · 所有请求只发往 api.github.com；令牌不会离开本机。</span>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <h3 id="modal-title">确认</h3>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn" id="modal-cancel">取消</button>
+      <button class="btn primary" id="modal-ok">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var API = 'https://api.github.com';
+  var LS_TOKEN = 'forksync.token';
+  var LS_WATCH = 'forksync.watch';
+  var LS_CACHE = 'forksync.cache2';
+  var LS_ORG = 'forksync.org';
+  var LS_IGNORE = 'forksync.ignore';
+  var CACHE_TTL = 10 * 60 * 1000;
+
+  var STATUS = {
+    synced:        { text: '已同步',   cls: 'ok'   },
+    behind:        { text: '可快进',   cls: 'warn' },
+    ahead:         { text: '本地领先', cls: 'info' },
+    syncing:       { text: '同步中',   cls: 'info' },
+    diverged:      { text: '分叉',     cls: 'bad'  },
+    unrelated:     { text: '无关历史', cls: 'bad'  },
+    error:         { text: '检测失败', cls: 'bad'  },
+    checking:      { text: '检测中',   cls: 'dim'  },
+    unknown:       { text: '无法判定', cls: 'dim'  }
+  };
+
+  var S = {
+    token: '',
+    me: null,
+    forks: [],       // { repo, upstream, kind:'fork', branch, upBranch, htmlUrl, pushedAt, upPushedAt, status, checkedAt }
+    copies: [],      // { repo, upstream, kind:'copy', ... }
+    selfMade: [],    // { repo, htmlUrl, pushedAt, private }
+    watch: [],       // [{ repo, upstream }]
+    ignore: [],      // 被移除的仓库名，扫描时跳过
+    selected: {},    // key -> true
+    filterState: 'action',
+    page: 1,
+    scannedAt: 0,
+    scanning: false,
+    working: false,
+    batch: null,      // { total, done, ok, fail, running }
+    lastBatch: null,  // { total, ok, fail, at }
+    done: 0,
+    total: 0,
+    includeOrg: false,
+    filter: '',
+    scopes: null,
+    rate: null
+  };
+
+  var PAGE_SIZE = 50;
+
+  var $ = function (sel, root) { return (root || document).querySelector(sel); };
+  var logEl, toastEl, toastTimer = null, renderTimer = null;
+
+  function esc(v) {
+    return String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return '—';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit' });
+  }
+
+  function toast(msg, kind) {
+    toastEl.textContent = msg;
+    toastEl.style.borderColor = kind === 'err' ? '#f85149' : (kind === 'ok' ? '#3fb950' : '#31445c');
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 2800);
+  }
+
+  // 页面内确认框：不依赖 window.confirm，避免被浏览器“禁止此页面再弹窗”静默拦截
+  function askConfirm(opts) {
+    opts = opts || {};
+    var ov = $('#overlay');
+    var okBtn = $('#modal-ok');
+    var cancelBtn = $('#modal-cancel');
+
+    $('#modal-title').textContent = opts.title || '确认';
+    $('#modal-body').innerHTML = opts.bodyHtml || ('<p>' + esc(opts.text || '') + '</p>');
+    okBtn.textContent = opts.okText || '确认';
+    okBtn.className = 'btn ' + (opts.danger ? 'danger' : 'primary');
+    cancelBtn.style.display = opts.single ? 'none' : '';
+    ov.hidden = false;
+
+    return new Promise(function (resolve) {
+      function close(v) {
+        ov.hidden = true;
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        ov.removeEventListener('click', onBackdrop);
+        document.removeEventListener('keydown', onKey);
+        resolve(v);
+      }
+      function onOk() { close(true); }
+      function onCancel() { close(false); }
+      function onBackdrop(e) { if (e.target === ov) close(false); }
+      function onKey(e) { if (e.key === 'Escape') close(false); }
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      ov.addEventListener('click', onBackdrop);
+      document.addEventListener('keydown', onKey);
+      setTimeout(function () { try { okBtn.focus(); } catch (e) { /* ignore */ } }, 30);
+    });
+  }
+
+  function log(msg, kind) {
+    if (!logEl) return;
+    var line = document.createElement('div');
+    var t = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+    line.innerHTML = '<span class="t">' + t + '</span> <span class="' + (kind || 'info') + '">' + esc(msg) + '</span>';
+    logEl.appendChild(line);
+    while (logEl.childElementCount > 300) logEl.removeChild(logEl.firstChild);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function readRate(res) {
+    try {
+      var rem = res.headers.get('x-ratelimit-remaining');
+      var lim = res.headers.get('x-ratelimit-limit');
+      if (rem !== null && lim !== null) {
+        S.rate = { rem: parseInt(rem, 10), lim: parseInt(lim, 10) };
+        $('#rate').textContent = 'API 限额：剩余 ' + S.rate.rem + ' / ' + S.rate.lim +
+          (S.token ? '（已认证）' : '（未认证）');
+      }
+    } catch (e) { /* 浏览器可能不暴露响应头 */ }
+  }
+
+  function api(path, opts) {
+    opts = opts || {};
+    var headers = { 'Accept': 'application/vnd.github+json' };
+    if (S.token) headers['Authorization'] = 'Bearer ' + S.token;
+    var init = { method: opts.method || 'GET', headers: headers };
+    if (opts.signal) init.signal = opts.signal;
+    if (opts.body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+      init.body = JSON.stringify(opts.body);
+    }
+    return fetch(API + path, init).then(function (res) {
+      readRate(res);
+      try {
+        var sc = res.headers.get('x-oauth-scopes');
+        if (sc !== null) S.scopes = sc;   // classic 令牌会返回 scope 列表
+      } catch (e) { /* ignore */ }
+      return res.text().then(function (txt) {
+        var data = null;
+        if (txt) {
+          try { data = JSON.parse(txt); } catch (e) { data = txt; }
+        }
+        if (!res.ok) {
+          var msg = (data && data.message) ? data.message : ('HTTP ' + res.status);
+          var err = new Error(msg);
+          err.status = res.status;
+          err.data = data;
+          throw err;
+        }
+        return data;
+      });
+    }, function (e) {
+      if (e && (e.name === 'AbortError' || /abort/i.test(e.message || ''))) {
+        var aerr = new Error('已取消');
+        aerr.aborted = true;
+        aerr.status = 0;
+        throw aerr;
+      }
+      var err = new Error('网络请求失败（可能被浏览器或网络策略拦截）：' + e.message);
+      err.status = 0;
+      throw err;
+    });
+  }
+
+  function describeError(e) {
+    if (e.status === 404) return '仓库不存在，或令牌无权访问';
+    if (e.status === 401) return '令牌无效或已过期';
+    if (e.status === 403) return '权限不足或触发限流：' + e.message;
+    if (e.status === 0) return e.message;
+    return e.message;
+  }
+
+  /* ---------- 判定核心 ---------- */
+  function derive(behind, ahead) {
+    if (!behind && !ahead) return 'synced';
+    if (!ahead) return 'behind';
+    if (!behind) return 'ahead';
+    return 'diverged';
+  }
+
+  // 真 fork：先取仓库详情拿到 parent（列表接口不返回 parent），
+  // 再用跨 fork 的 compare（base=上游分支，head=我们的分支）
+  //   behind_by = 上游多出来的（= 我们落后）
+  //   ahead_by  = 我们多出来的（= 自己的提交）
+  async function inspectFork(it) {
+    var r = { state: 'unknown', behind: 0, ahead: 0 };
+    try {
+      var meta = await api('/repos/' + it.repo);
+      it.branch = meta.default_branch;
+      it.htmlUrl = meta.html_url;
+      it.pushedAt = meta.pushed_at;
+
+      if (!meta.parent) {
+        r.state = 'unknown';
+        r.msg = '上游仓库已删除或不可见，无法比较';
+        return r;
+      }
+      it.upstream = meta.parent.full_name;
+      it.upBranch = meta.parent.default_branch;
+      it.upHtmlUrl = meta.parent.html_url;
+      it.upPushedAt = meta.parent.pushed_at;
+
+      var owner = it.repo.split('/')[0];
+      var cmp = null;
+      try {
+        cmp = await api('/repos/' + it.upstream + '/compare/' + it.upBranch + '...' + owner + ':' + it.branch);
+        r.behind = cmp.behind_by || 0;
+        r.ahead = cmp.ahead_by || 0;
+      } catch (e) {
+        if (e.status !== 404 && e.status !== 422) throw e;
+        // fork 被改名等情况下退化为“用我们的 HEAD 当 base”
+        var ref = await api('/repos/' + it.repo + '/git/ref/heads/' + it.branch);
+        cmp = await api('/repos/' + it.upstream + '/compare/' + ref.object.sha + '...' + it.upBranch);
+        r.behind = cmp.ahead_by || 0;
+        r.ahead = cmp.behind_by || 0;
+      }
+      r.compareUrl = cmp.html_url;
+      r.state = derive(r.behind, r.ahead);
+    } catch (e) {
+      r.state = 'error';
+      r.msg = describeError(e);
+    }
+    return r;
+  }
+
+  // 非 fork 的“副本”：只能把我们的 HEAD 当 base 塞给上游的 compare
+  async function inspectCopy(it) {
+    var r = { state: 'unknown', behind: 0, ahead: 0 };
+    try {
+      var meta = await api('/repos/' + it.repo);
+      it.htmlUrl = meta.html_url;
+      it.branch = meta.default_branch;
+      it.pushedAt = meta.pushed_at;
+
+      var ref = await api('/repos/' + it.repo + '/git/ref/heads/' + it.branch);
+      r.headSha = ref.object.sha;
+
+      var up = await api('/repos/' + it.upstream);
+      it.upBranch = up.default_branch;
+      it.upHtmlUrl = up.html_url;
+      it.upPushedAt = up.pushed_at;
+
+      var cmp = await api('/repos/' + it.upstream + '/compare/' + r.headSha + '...' + up.default_branch);
+      r.behind = cmp.ahead_by || 0;
+      r.ahead = cmp.behind_by || 0;
+      r.compareUrl = cmp.html_url;
+      r.state = derive(r.behind, r.ahead);
+    } catch (e) {
+      if (e.status === 404 || e.status === 422) {
+        r.state = 'unrelated';
+        r.msg = '与上游没有共同祖先';
+      } else {
+        r.state = 'error';
+        r.msg = describeError(e);
+      }
+    }
+    return r;
+  }
+
+  /* ---------- 扫描 ---------- */
+  async function listAll(base) {
+    var out = [], page = 1;
+    while (page <= 20) {
+      var sep = base.indexOf('?') >= 0 ? '&' : '?';
+      var batch = await api(base + sep + 'page=' + page);
+      if (!Array.isArray(batch)) break;
+      out = out.concat(batch);
+      if (batch.length < 100) break;
+      page++;
+    }
+    return out;
+  }
+
+  async function pool(items, limit, worker) {
+    var i = 0;
+    var runners = [];
+    var n = Math.min(limit, items.length);
+    for (var k = 0; k < n; k++) {
+      runners.push((async function () {
+        while (i < items.length) {
+          var idx = i++;
+          try { await worker(items[idx]); } catch (e) { /* worker 自己兜底 */ }
+          S.done++;
+          scheduleRender();
+        }
+      })());
+    }
+    await Promise.all(runners);
+  }
+
+  async function scan() {
+    if (S.scanning) return;
+    if (!S.token) { toast('请先填写令牌', 'err'); return; }
+
+    S.scanning = true;
+    S.done = 0;
+    S.total = 0;
+    S.selected = {};
+    S.page = 1;
+    S.working = false;
+    render();
+
+    try {
+      var me = await api('/user');
+      S.me = { login: me.login, avatar: me.avatar_url, name: me.name || '' };
+      render();
+
+      var aff = S.includeOrg ? 'owner,organization_member' : 'owner';
+      var all = await listAll('/user/repos?affiliation=' + aff + '&per_page=100&sort=pushed');
+
+      S.selfMade = all.filter(function (r) { return !r.fork; }).map(function (r) {
+        return { repo: r.full_name, htmlUrl: r.html_url, pushedAt: r.pushed_at, private: r.private };
+      });
+
+      // 列表接口不返回 parent，只能先按 fork 标记分组，检测时再逐个取上游。
+      S.forks = all.filter(function (r) { return r.fork && !isIgnored(r.full_name); }).map(function (r) {
+        return {
+          repo: r.full_name,
+          kind: 'fork',
+          branch: r.default_branch,
+          htmlUrl: r.html_url,
+          pushedAt: r.pushed_at,
+          status: null,
+          checkedAt: 0
+        };
+      });
+
+      S.copies = S.watch.filter(function (w) { return !isIgnored(w.repo); }).map(function (w) {
+        return { repo: w.repo, upstream: w.upstream, kind: 'copy', status: null, checkedAt: 0 };
+      });
+
+      S.total = S.forks.length + S.copies.length;
+      S.done = 0;
+      render();
+      log('已读取 ' + all.length + ' 个仓库：' + S.forks.length + ' 个 fork，' + S.selfMade.length + ' 个自建；开始逐个检测…', 'info');
+
+      await pool(S.forks, 3, async function (it) {
+        it.status = await inspectFork(it);
+        it.checkedAt = Date.now();
+      });
+
+      await pool(S.copies, 2, async function (it) {
+        it.status = await inspectCopy(it);
+        it.checkedAt = Date.now();
+      });
+
+      S.scannedAt = Date.now();
+      S.done = S.total;
+      writeCache();
+
+      var behind = S.forks.concat(S.copies).filter(function (x) { return x.status && x.status.state === 'behind'; }).length;
+      log('扫描完成：' + S.forks.length + ' 个 fork + ' + S.copies.length + ' 个副本，其中 ' + behind + ' 个可快进', 'ok');
+      if (behind) toast(behind + ' 个仓库可以快进', 'info');
+    } catch (e) {
+      log('扫描失败：' + describeError(e), 'err');
+      toast('扫描失败：' + describeError(e), 'err');
+    } finally {
+      S.scanning = false;
+      render();
+    }
+  }
+
+  async function recheck(item) {
+    item.status = item.kind === 'fork' ? await inspectFork(item) : await inspectCopy(item);
+    item.checkedAt = Date.now();
+    writeCache();
+    render();
+  }
+
+  /* ---------- 同步 ---------- */
+  function stamp() {
+    return new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '');
+  }
+
+  function isWorkflowError(msg) {
+    var m = String(msg || '');
+    return /workflow/i.test(m) && /(scope|permission)/i.test(m);
+  }
+
+  async function syncOne(item, silent, signal) {
+    var s = item.status;
+    if (!s || s.state !== 'behind') return false;
+    if (!S.token) { toast('请先填写令牌', 'err'); return false; }
+
+    if (item.kind === 'copy') {
+      if (!s.upHeadSha) {
+        try {
+          var ur = await api('/repos/' + item.upstream + '/git/ref/heads/' + item.upBranch, { signal: signal });
+          s.upHeadSha = ur.object.sha;
+        } catch (e) {
+          if (e.aborted) return false;
+          item.lastError = '取上游 HEAD 失败：' + describeError(e);
+          log(item.repo + ' 取上游 HEAD 失败：' + describeError(e), 'err');
+          return false;
+        }
+      }
+      if (!silent) {
+        var ok = await askConfirm({
+          title: '同步 ' + item.repo,
+          bodyHtml: '<p>这是非 fork 仓库，GitHub 没有官方同步接口，只能强制快进。</p>' +
+            '<p>将执行：<br>1. 在当前 <code>' + esc(s.headSha.slice(0, 7)) + '</code> 上打备份 tag<br>' +
+            '2. 把 <code>' + esc(item.branch) + '</code> 指向上游 <code>' + esc(s.upHeadSha.slice(0, 7)) + '</code></p>' +
+            '<p class="dim">因为你没有独有提交（ahead = 0），这一步是无损的。</p>',
+          okText: '开始同步'
+        });
+        if (!ok) return false;
+      }
+    }
+
+    item.syncing = true;
+    item.lastError = null;
+    item.needWorkflow = false;
+    render();
+
+    try {
+      if (item.kind === 'fork') {
+        var res = await api('/repos/' + item.repo + '/merge-upstream', {
+          method: 'POST', body: { branch: item.branch }, signal: signal
+        });
+        log(item.repo + ' → merge-upstream: ' + (res.merge_type || 'ok'), 'ok');
+      } else {
+        var tag = 'pre-sync-' + stamp();
+        await api('/repos/' + item.repo + '/git/refs', {
+          method: 'POST', body: { ref: 'refs/tags/' + tag, sha: s.headSha }, signal: signal
+        });
+        await api('/repos/' + item.repo + '/git/refs/heads/' + item.branch, {
+          method: 'PATCH', body: { sha: s.upHeadSha, force: true }, signal: signal
+        });
+        log(item.repo + ' → 备份 tag ' + tag + '，' + item.branch + ' 快进到 ' + s.upHeadSha.slice(0, 7), 'ok');
+      }
+    } catch (e) {
+      item.syncing = false;
+
+      if (e.aborted) {
+        // 请求被中断：服务端可能已经完成，重新确认一次真实状态
+        item.lastError = '已取消，正在确认实际状态…';
+        render();
+        try { await recheck(item); } catch (ignore) { /* ignore */ }
+        item.lastError = null;
+        render();
+        return false;
+      }
+
+      var raw = (e && e.message) || '';
+      if (isWorkflowError(raw)) {
+        item.needWorkflow = true;
+        item.lastError = '令牌缺少 Workflows 权限：本次同步要改动 .github/workflows 文件，被 GitHub 拒绝';
+        log(item.repo + ' 同步被拒：需要 Workflows: Read and write 权限', 'err');
+      } else {
+        var hint = e.status === 409 ? '上游与本地有冲突，不能自动合并' : describeError(e);
+        item.lastError = hint;
+        log(item.repo + ' 同步失败：' + hint, 'err');
+      }
+      render();
+      return false;
+    }
+
+    // 先乐观更新，避免后面的复查失败把“已经同步成功”误报成失败
+    s.state = 'synced';
+    s.behind = 0;
+    s.ahead = 0;
+    item.syncing = false;
+    item.needWorkflow = false;
+    item.checkedAt = Date.now();
+    render();
+
+    try {
+      await recheck(item);
+    } catch (e) {
+      log(item.repo + ' 已同步，但复查失败：' + describeError(e), 'err');
+    }
+    return true;
+  }
+
+  function allItems() { return S.forks.concat(S.copies); }
+
+  /* ---------- 批量操作 ---------- */
+  async function syncSelected() {
+    if (S.working || S.scanning) return;
+
+    var sel = selectedItems();
+    if (!sel.length) { toast('还没有选择任何项目', 'err'); return; }
+    if (!S.token) { toast('请先填写令牌，再点一键同步', 'err'); return; }
+
+    var list = sel.filter(function (x) { return x.status && x.status.state === 'behind'; });
+    var skipped = sel.length - list.length;
+    var needPerm = list.filter(function (x) { return x.needWorkflow; }).length;
+
+    if (!list.length) {
+      toast('所选的 ' + sel.length + ' 个里没有“可快进”的，无法同步', 'err');
+      log('所选项中没有可快进的（分叉 / 检测失败 / 已同步都不参与同步）', 'err');
+      return;
+    }
+
+    var ok = await askConfirm({
+      title: '同步 ' + list.length + ' 个仓库',
+      bodyHtml: '<p>将对这些仓库执行快进同步：只让它们向上游看齐，不会覆盖你自己已有的提交。</p>' +
+        '<div class="modal-list">' + list.slice(0, 12).map(function (x) {
+          return '· ' + esc(x.repo) + ' <span class="dim">落后 ' + x.status.behind + '</span>';
+        }).join('<br>') +
+        (list.length > 12 ? '<br><span class="dim">… 还有 ' + (list.length - 12) + ' 个</span>' : '') + '</div>' +
+        (skipped ? '<p class="dim">另有 ' + skipped + ' 个所选项不是“可快进”状态，将被跳过。</p>' : '') +
+        (needPerm ? '<p class="dim">其中 ' + needPerm + ' 个上次因缺少 Workflows 权限失败；如果还没给令牌加权限，这次仍会失败。</p>' : ''),
+      okText: '开始同步'
+    });
+    if (!ok) { log('已取消批量同步', 'info'); return; }
+
+    await runBatch(list, skipped);
+  }
+
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  var ctl = null;
+
+  async function runBatch(list, skipped) {
+    ctl = { controller: (typeof AbortController !== 'undefined') ? new AbortController() : null };
+    S.working = true;
+    S.batch = {
+      total: list.length, done: 0, ok: 0, fail: 0, perm: 0,
+      running: true, paused: false, stop: false, cancel: false, current: ''
+    };
+    render();
+    log('开始同步 ' + list.length + ' 个仓库', 'info');
+
+    for (var i = 0; i < list.length; i++) {
+      while (S.batch.paused && !S.batch.cancel && !S.batch.stop) await sleep(150);
+      if (S.batch.cancel || S.batch.stop) break;
+
+      S.batch.current = list[i].repo;
+      render();
+
+      var good = await syncOne(list[i], true, ctl && ctl.controller ? ctl.controller.signal : undefined);
+      S.batch.done++;
+
+      if (good) {
+        S.batch.ok++;
+        delete S.selected[keyOf(list[i])];
+      } else if (list[i].needWorkflow) {
+        S.batch.perm++;
+        if (S.batch.perm === 1 && i < list.length - 1 && !S.batch.cancel) {
+          S.batch.paused = true;
+          setTimeout(showWorkflowHelp, 250);
+          log('检测到 Workflows 权限问题，已自动暂停并停止后续队列；加完权限后点「继续」', 'err');
+        }
+      } else if (!S.batch.cancel) {
+        S.batch.fail++;
+      }
+      render();
+    }
+
+    var cancelled = S.batch.cancel;
+    var stopped = S.batch.stop && !cancelled;
+    S.batch.running = false;
+    S.batch.current = '';
+    S.working = false;
+    ctl = null;
+
+    S.lastBatch = {
+      total: list.length, ok: S.batch.ok, fail: S.batch.fail, perm: S.batch.perm,
+      at: Date.now(), cancelled: cancelled, stopped: stopped
+    };
+    render();
+
+    var summary = '成功 ' + S.batch.ok;
+    if (S.batch.fail) summary += '，失败 ' + S.batch.fail;
+    if (S.batch.perm) summary += '，缺 workflow 权限 ' + S.batch.perm;
+    var verb = cancelled ? '已取消' : (stopped ? '已停止' : '完成');
+
+    log('批量同步' + verb + '：' + summary + (skipped ? '，跳过 ' + skipped : ''), (S.batch.fail || S.batch.perm) ? 'err' : 'ok');
+    toast(verb + '：' + summary, (S.batch.fail || S.batch.perm) ? 'err' : 'ok');
+  }
+
+  function pauseBatch() {
+    if (!S.batch || !S.batch.running || S.batch.paused) return;
+    S.batch.paused = true;
+    render();
+    log('已暂停：当前这条完成后不再开始新的', 'info');
+  }
+
+  function resumeBatch() {
+    if (!S.batch || !S.batch.running || !S.batch.paused) return;
+    S.batch.paused = false;
+    render();
+    log('继续同步', 'info');
+  }
+
+  function stopBatch() {
+    if (!S.batch || !S.batch.running) return;
+    S.batch.stop = true;
+    S.batch.paused = false;
+    render();
+    log('已请求停止：当前这条完成后结束，剩余项目保持勾选', 'info');
+  }
+
+  function cancelBatch() {
+    if (!S.batch || !S.batch.running) return;
+    S.batch.cancel = true;
+    S.batch.paused = false;
+    if (ctl && ctl.controller) { try { ctl.controller.abort(); } catch (e) { /* ignore */ } }
+    render();
+    log('已取消：中断当前请求，并停止后续队列', 'err');
+  }
+
+  function showWorkflowHelp() {
+    askConfirm({
+      title: '给令牌加 Workflows 权限',
+      single: true,
+      okText: '知道了',
+      bodyHtml:
+        '<p>GitHub 规定：任何会创建或修改 <span class="mono">.github/workflows/*</span> 的操作，令牌必须带 workflow 权限，否则整次同步都会被拒绝。</p>' +
+        '<p><b>细粒度令牌（推荐）</b></p>' +
+        '<ol style="margin:6px 0 10px;padding-left:20px;line-height:1.9">' +
+        '<li>打开 <a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noreferrer">Personal access tokens (Fine-grained)</a></li>' +
+        '<li>点正在用的那个令牌 → <b>Edit</b></li>' +
+        '<li>Repository permissions → 找到 <b>Workflows</b> → 改为 <b>Read and write</b></li>' +
+        '<li>保存后回到本页，点对应卡片的「同步」重试（不需要重新扫描）</li>' +
+        '</ol>' +
+        '<p><b>Classic 令牌</b>：在令牌里勾选 <span class="mono">workflow</span> scope。</p>' +
+        '<p class="dim">权限修改立即生效，不用重新生成令牌。实在不想加权限，就只能去 GitHub 网页上点该仓库的 Sync fork（网页用的是登录态，不受令牌 scope 限制）。</p>'
+    });
+  }
+
+  async function removeSelected() {
+    if (S.working) return;
+    var list = selectedItems();
+    if (!list.length) return;
+
+    var ok = await askConfirm({
+      title: '移除 ' + list.length + ' 个项目',
+      bodyHtml: '<p>这些项目会从看板移除，<b>不会删除 GitHub 上的仓库</b>。</p>' +
+        '<p class="dim">它们会进入底部「已忽略」名单，随时可以恢复。</p>' +
+        '<div class="modal-list">' + list.slice(0, 12).map(function (x) { return '· ' + esc(x.repo); }).join('<br>') +
+        (list.length > 12 ? '<br><span class="dim">… 还有 ' + (list.length - 12) + ' 个</span>' : '') + '</div>',
+      okText: '移除',
+      danger: true
+    });
+    if (!ok) return;
+
+    list.forEach(function (it) {
+      if (!isIgnored(it.repo)) S.ignore.push(it.repo);
+      if (it.kind === 'copy') {
+        S.watch = S.watch.filter(function (w) { return w.repo !== it.repo; });
+        S.copies = S.copies.filter(function (x) { return x.repo !== it.repo; });
+      } else {
+        S.forks = S.forks.filter(function (x) { return x.repo !== it.repo; });
+      }
+      delete S.selected[keyOf(it)];
+    });
+    persistWatch();
+    persistIgnore();
+    writeCache();
+    log('已从看板移除 ' + list.length + ' 个项目（可在“已忽略”恢复）', 'info');
+    render();
+  }
+
+  /* ---------- 渲染 ---------- */
+  function scheduleRender() {
+    if (renderTimer) return;
+    renderTimer = setTimeout(function () { renderTimer = null; render(); }, 120);
+  }
+
+  function render() {
+    renderAccount();
+    renderTokenStatus();
+    renderChips();
+    renderList();
+    renderSelf();
+    renderIgnored();
+  }
+
+  function renderTokenStatus() {
+    var el = $('#token-status');
+    if (!el) return;
+    if (!S.token) { el.innerHTML = ''; return; }
+
+    var kind = S.token.indexOf('github_pat_') === 0 ? '细粒度'
+      : (S.token.indexOf('ghp_') === 0 ? 'classic' : '未知');
+    var masked = S.token.slice(0, 12) + '…' + S.token.slice(-4);
+    var out = '当前令牌：<code>' + esc(masked) + '</code>（' + kind + '）';
+
+    if (kind === 'classic') {
+      if (S.scopes === null) {
+        out += ' · 正在读取 scopes…';
+      } else if (/(^|,)\s*workflow\s*(,|$)/.test(S.scopes + ',')) {
+        out += ' · scopes: <code>' + esc(S.scopes || '（空）') + '</code> ✅ 含 workflow';
+      } else {
+        out += ' · scopes: <code>' + esc(S.scopes || '（空）') + '</code> · <b style="color:#f85149">不含 workflow</b>，去 ' +
+          '<a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">settings/tokens</a> 勾上 workflow';
+      }
+    } else if (kind === '细粒度') {
+      out += ' · 细粒度令牌的权限无法从 API 读取，需在设置页确认 <b>Workflows = Read and write</b> ' +
+        '<a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noreferrer">打开设置</a>';
+    }
+    el.innerHTML = out;
+  }
+
+  function renderAccount() {
+    var host = $('#account');
+    if (!S.me) {
+      host.innerHTML = '<span>未登录 · 填入令牌后点“扫描我的全部仓库”</span>';
+      return;
+    }
+    host.innerHTML =
+      '<img class="avatar" src="' + esc(S.me.avatar) + '" alt="">' +
+      '<div><b>' + esc(S.me.login) + '</b><br>' +
+      '共 ' + (S.forks.length + S.selfMade.length) + ' 个仓库 · ' +
+      S.forks.length + ' 个 fork / ' + S.selfMade.length + ' 个自建</div>';
+  }
+
+  function countBy(state) {
+    return allItems().filter(function (x) { return x.status && x.status.state === state; }).length;
+  }
+
+  function matchRepo(repo) {
+    return !S.filter || String(repo).toLowerCase().indexOf(S.filter) !== -1;
+  }
+
+  function renderChips() {
+    var host = $('#chips');
+    if (!S.scannedAt && !S.scanning) { host.innerHTML = ''; return; }
+    var behind = countBy('behind'), diverged = countBy('diverged'), synced = countBy('synced'), err = countBy('error');
+    var out = [];
+    out.push('<span class="chip warn"><span class="dot" style="background:#d29922"></span>可快进<b>' + behind + '</b></span>');
+    out.push('<span class="chip bad"><span class="dot" style="background:#f85149"></span>分叉/异常<b>' + (diverged + err) + '</b></span>');
+    out.push('<span class="chip ok"><span class="dot" style="background:#3fb950"></span>已最新<b>' + synced + '</b></span>');
+    out.push('<span class="chip"><span class="dot" style="background:#5f6f7f"></span>自建（不参与）<b>' + S.selfMade.length + '</b></span>');
+    if (S.ignore.length) {
+      out.push('<span class="chip"><span class="dot" style="background:#5f6f7f"></span>已忽略<b>' + S.ignore.length + '</b></span>');
+    }
+    var needPerm = allItems().filter(function (x) { return x.needWorkflow; }).length;
+    if (needPerm) {
+      out.push('<span class="chip bad"><span class="dot" style="background:#f85149"></span>需 workflow 权限<b>' + needPerm + '</b></span>');
+    }
+    if (S.scanning) {
+      out.push('<span class="chip">扫描中 <b>' + S.done + '/' + S.total + '</b></span>');
+    } else if (S.scannedAt) {
+      out.push('<span class="chip">上次扫描 ' + esc(fmtTime(new Date(S.scannedAt).toISOString())) + ' ' +
+        new Date(S.scannedAt).toLocaleTimeString('zh-CN', { hour12: false }) + '</span>');
+    }
+    host.innerHTML = out.join('');
+  }
+
+  function card(item) {
+    var s = item.status || { state: 'checking', behind: 0, ahead: 0 };
+    var st = item.syncing ? STATUS.syncing : (STATUS[s.state] || STATUS.unknown);
+    var key = item.kind + ':' + item.repo;
+    var canSync = s.state === 'behind' && !!S.token && !S.scanning && !S.working && !item.syncing;
+    var out = [];
+
+    out.push('<article class="card">');
+    out.push('<div class="card-head">');
+    out.push('<input type="checkbox" class="pick" data-act="pick" data-key="' + esc(key) + '"' + (S.selected[key] ? ' checked' : '') + ' title="选择这个项目">');
+    out.push('<a class="repo" href="' + esc(item.htmlUrl || ('https://github.com/' + item.repo)) + '" target="_blank" rel="noreferrer">' + esc(item.repo) + '</a>');
+    out.push('<span class="badge ' + st.cls + '">' + st.text + '</span>');
+    out.push('</div>');
+
+    out.push('<div class="line">上游 ' + (item.upstream
+      ? '<a class="mono" href="' + esc(item.upHtmlUrl || ('https://github.com/' + item.upstream)) + '" target="_blank" rel="noreferrer">' + esc(item.upstream) + '</a>'
+      : '<span class="mono">—</span>') +
+      (item.kind === 'copy' ? ' · <span style="color:#e3b341">非 fork</span>' : '') + '</div>');
+
+    if (item.branch) {
+      out.push('<div class="line">分支 <span class="mono">' + esc(item.branch) + '</span>' +
+        (item.upBranch && item.upBranch !== item.branch ? ' → 上游 <span class="mono">' + esc(item.upBranch) + '</span>' : '') + '</div>');
+    }
+
+    if (s.state === 'behind') {
+      out.push('<div class="line"><span class="metric">落后 <b>' + s.behind + '</b> 个提交</span>' +
+        (item.upPushedAt ? '<span class="metric">上游最后推送 ' + esc(fmtTime(item.upPushedAt)) + '</span>' : '') + '</div>');
+    } else if (s.state === 'diverged') {
+      out.push('<div class="line"><span class="metric">落后 <b>' + s.behind + '</b></span><span class="metric">独有 <b>' + s.ahead + '</b></span></div>');
+    } else if (s.state === 'ahead') {
+      out.push('<div class="line"><span class="metric">上游没有的提交 <b>' + s.ahead + '</b> 个</span></div>');
+    } else if (s.state === 'synced') {
+      out.push('<div class="line"><span class="metric">与上游完全一致</span></div>');
+    }
+
+    if (s.state === 'behind' && item.kind === 'copy') {
+      out.push('<div class="note">非 fork 仓库没有 Sync fork 按钮：同步时会先打备份 tag，再把 ' + esc(item.branch) + ' 指向上游。</div>');
+    }
+    if (s.state === 'unrelated') {
+      out.push('<div class="note bad">与上游没有共同祖先（模板生成或独立仓库），无法合并。</div>');
+    }
+    if (s.state === 'diverged') {
+      out.push('<div class="note warn">双方都有独有提交，自动同步会冲突。请手动 rebase 或建 PR。</div>');
+    }
+    if (s.state === 'error') {
+      out.push('<div class="note bad">' + esc(s.msg || '未知错误') + '</div>');
+    }
+    if (s.state === 'unknown' && s.msg) {
+      out.push('<div class="note">' + esc(s.msg) + '</div>');
+    }
+    if (item.lastError) {
+      out.push('<div class="note bad">上次同步失败：' + esc(item.lastError) + '</div>');
+    }
+    if (item.needWorkflow) {
+      out.push('<div class="note warn">GitHub 拒绝更新 <span class="mono">.github/workflows/*</span>：令牌需要 <b>Workflows: Read and write</b> 权限。' +
+        '<button class="btn ghost tiny" data-act="workflow-help" style="margin-left:6px;padding:2px 8px">怎么加</button>' +
+        '<a class="btn ghost tiny" href="https://github.com/' + esc(item.repo) + '" target="_blank" rel="noreferrer" style="margin-left:4px;padding:2px 8px">去网页同步</a></div>');
+    }
+
+    out.push('<div class="actions">');
+    var syncTitle = !S.token ? ' title="需要先填写 GitHub 令牌"' : '';
+    out.push('<button class="btn primary tiny" data-act="sync" data-key="' + esc(key) + '"' + (canSync ? '' : ' disabled') + syncTitle + '>同步</button>');
+    out.push('<button class="btn tiny" data-act="recheck" data-key="' + esc(key) + '"' + (S.scanning || item.syncing ? ' disabled' : '') + '>重新检测</button>');
+    if (s.compareUrl && (s.state === 'behind' || s.state === 'diverged')) {
+      out.push('<a class="btn ghost tiny" href="' + esc(s.compareUrl) + '" target="_blank" rel="noreferrer">看差异</a>');
+    }
+    out.push('<button class="btn ghost tiny" data-act="yaml" data-key="' + esc(key) + '">Actions</button>');
+    if (item.kind === 'copy') {
+      out.push('<button class="btn ghost tiny" data-act="unwatch" data-key="' + esc(key) + '">移出</button>');
+    }
+    out.push('</div>');
+    out.push('</article>');
+    return out.join('');
+  }
+
+  var FILTERS = [
+    ['action', '需要跟进'],
+    ['behind', '可快进'],
+    ['diverged', '分叉'],
+    ['error', '检测失败'],
+    ['failed', '同步失败'],
+    ['unknown', '无法判定'],
+    ['ok', '已是最新'],
+    ['all', '全部']
+  ];
+
+  function keyOf(it) { return it.kind + ':' + it.repo; }
+
+  function isIgnored(repo) { return S.ignore.indexOf(repo) !== -1; }
+
+  function selectedItems() {
+    return allItems().filter(function (x) { return S.selected[keyOf(x)]; });
+  }
+
+  function stateMatches(it) {
+    var s = it.status ? it.status.state : '';
+    switch (S.filterState) {
+      case 'behind': return s === 'behind';
+      case 'diverged': return s === 'diverged';
+      case 'error': return s === 'error';
+      case 'failed': return !!it.lastError;
+      case 'unknown': return s === 'unknown' || !s;
+      case 'ok': return s === 'synced' || s === 'ahead';
+      case 'all': return true;
+      default: return !s || ['behind', 'diverged', 'error', 'unknown'].indexOf(s) >= 0;
+    }
+  }
+
+  function visibleItems() {
+    var items = allItems().filter(function (x) { return matchRepo(x.repo) && stateMatches(x); });
+    items.sort(function (a, b) {
+      // 未检测完的排前面，其余按最近推送时间倒序
+      var ap = a.status ? 0 : 1, bp = b.status ? 0 : 1;
+      if (ap !== bp) return ap - bp;
+      return Date.parse(b.pushedAt || 0) - Date.parse(a.pushedAt || 0);
+    });
+    return items;
+  }
+
+  function pageItems() {
+    var items = visibleItems();
+    var pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+    if (S.page > pages) S.page = pages;
+    if (S.page < 1) S.page = 1;
+    var start = (S.page - 1) * PAGE_SIZE;
+    return { items: items.slice(start, start + PAGE_SIZE), total: items.length, pages: pages };
+  }
+
+  function renderList() {
+    var host = $('#sec-list');
+    if (!allItems().length && !S.scanning) { host.innerHTML = ''; return; }
+
+    var p = pageItems();
+    var selCount = Object.keys(S.selected).length;
+    var syncCount = selectedItems().filter(function (x) { return x.status && x.status.state === 'behind'; }).length;
+    var allPicked = p.items.length > 0 && p.items.every(function (x) { return !!S.selected[keyOf(x)]; });
+    var title = '需要跟进';
+    FILTERS.forEach(function (f) { if (f[0] === S.filterState) title = f[1]; });
+
+    var running = !!(S.batch && S.batch.running);
+    var paused = running && S.batch.paused;
+    var bar = '';
+    if (running) {
+      bar = '<div class="mini-bar"><span class="syncbar">' + (paused ? '已暂停' : '正在同步') + ' ' +
+        S.batch.done + ' / ' + S.batch.total +
+        ' · 成功 ' + S.batch.ok + ' · 失败 ' + (S.batch.fail + S.batch.perm) +
+        (S.batch.current ? ' · 当前：' + esc(S.batch.current) : '') + '</span></div>';
+    } else if (S.lastBatch) {
+      var lb = S.lastBatch;
+      bar = '<div class="mini-bar"><span class="count">上次同步：成功 ' + lb.ok +
+        (lb.fail ? ' · 失败 ' + lb.fail : '') +
+        (lb.perm ? ' · 缺 workflow 权限 ' + lb.perm : '') +
+        (lb.cancelled ? ' · 已取消' : (lb.stopped ? ' · 已停止' : '')) + '</span>' +
+        (lb.fail ? '<button class="btn ghost tiny" data-act="show-failed">查看失败的</button>' : '') +
+        (lb.perm ? '<button class="btn ghost tiny" data-act="workflow-help">缺权限怎么办</button>' : '') +
+        '</div>';
+    } else if (!selCount && p.total) {
+      bar = '<div class="mini-bar"><span class="count">勾选项目（或点「全选本页」）后可批量同步 / 移除</span></div>';
+    }
+
+    var syncTitle = !S.token ? ' title="需要先填写 GitHub 令牌"'
+      : (!selCount ? ' title="请先勾选要同步的项目"' : '');
+
+    var head = '<div class="toolbar">' +
+      '<h2>' + title + '</h2>' +
+      '<span class="count">' + p.total + ' 个</span>' +
+      '<select id="state-filter"' + (running ? ' disabled' : '') + '>' + FILTERS.map(function (f) {
+        return '<option value="' + f[0] + '"' + (S.filterState === f[0] ? ' selected' : '') + '>' + f[1] + '</option>';
+      }).join('') + '</select>' +
+      '<span class="spacer"></span>' +
+      '<label class="check" style="padding-bottom:0"><input type="checkbox" class="pick" id="sel-page"' + (allPicked ? ' checked' : '') + (running ? ' disabled' : '') + '> 全选本页</label>' +
+      '<button class="btn ghost tiny" data-act="select-all"' + (p.total && !running ? '' : ' disabled') + '>全选筛选结果</button>' +
+      '<span class="count">已选 ' + selCount + '</span>' +
+      '<button class="btn primary tiny" data-act="sync-selected"' + (selCount && !S.working && !S.scanning ? '' : ' disabled') + syncTitle + '>开始同步' +
+      (syncCount ? ' (' + syncCount + ')' : '') + '</button>' +
+      '<button class="btn tiny" data-act="pause"' + (running ? '' : ' disabled') + '>' + (paused ? '继续' : '暂停') + '</button>' +
+      '<button class="btn tiny" data-act="stop"' + (running ? '' : ' disabled') + '>停止</button>' +
+      '<button class="btn ghost tiny" data-act="cancel"' + (running ? '' : ' disabled') + '>取消</button>' +
+      '<button class="btn tiny" data-act="remove-selected"' + (selCount && !S.working ? '' : ' disabled') + '>移除所选</button>' +
+      '<button class="btn ghost tiny" data-act="clear-selected"' + (selCount && !S.working ? '' : ' disabled') + '>取消选择</button>' +
+      '</div>' + bar;
+
+    if (!p.items.length) {
+      var msg = (S.scanning && !p.total) ? '正在读取仓库列表…'
+        : (S.filter ? '没有匹配「' + esc(S.filter) + '」的仓库。'
+        : (S.filterState === 'action' ? '所有 fork 都与上游一致，没有需要处理的。🎉' : '这个分类下没有仓库。'));
+      host.innerHTML = head + '<div class="empty">' + msg + '</div>';
+      return;
+    }
+
+    var pager = p.pages > 1 ? '<div class="pager">' +
+      '<button class="btn tiny" data-act="page" data-dir="-1"' + (S.page <= 1 ? ' disabled' : '') + '>上一页</button>' +
+      '<span>第 ' + S.page + ' / ' + p.pages + ' 页 · 共 ' + p.total + ' 个</span>' +
+      '<button class="btn tiny" data-act="page" data-dir="1"' + (S.page >= p.pages ? ' disabled' : '') + '>下一页</button>' +
+      '</div>' : '';
+
+    host.innerHTML = head + '<div class="list">' + p.items.map(card).join('') + '</div>' + pager;
+  }
+
+  function renderIgnored() {
+    var host = $('#sec-ignored');
+    if (!S.ignore.length) { host.innerHTML = ''; return; }
+    var rows = S.ignore.map(function (repo) {
+      return '<div class="repo-row">' +
+        '<span class="name">' + esc(repo) + '</span>' +
+        '<span class="meta">已从看板移除</span>' +
+        '<button class="btn ghost tiny" data-act="unignore" data-repo="' + esc(repo) + '">恢复</button>' +
+        '</div>';
+    }).join('');
+    host.innerHTML =
+      '<details class="sec"><summary>已忽略 <b>' + S.ignore.length + '</b> · 不参与扫描</summary>' +
+      '<div class="rows">' + rows + '</div></details>';
+  }
+
+  function renderSelf() {
+    var host = $('#sec-self');
+    if (!S.selfMade.length) { host.innerHTML = ''; return; }
+    var rows = S.selfMade.filter(function (r) { return matchRepo(r.repo); }).map(function (r) {
+      var watched = S.watch.some(function (w) { return w.repo === r.repo; });
+      return '<div class="repo-row">' +
+        '<a class="name" href="' + esc(r.htmlUrl) + '" target="_blank" rel="noreferrer">' + esc(r.repo) + '</a>' +
+        (r.private ? '<span class="badge dim" style="transform:scale(.9)">private</span>' : '') +
+        '<span class="meta">' + esc(fmtTime(r.pushedAt)) + '</span>' +
+        (watched
+          ? '<span class="badge dim" style="margin-left:8px">已纳入副本</span>'
+          : '<button class="btn ghost tiny" data-act="watch" data-repo="' + esc(r.repo) + '">设为副本</button>') +
+        '</div>';
+    }).join('');
+    host.innerHTML =
+      '<details class="sec"><summary>自己创建的仓库 <b>' + S.selfMade.length + '</b> · 不参与同步</summary>' +
+      '<div class="rows">' + rows + '</div></details>';
+  }
+
+  /* ---------- Actions 模板 ---------- */
+  function yamlFor(item) {
+    var s = item.status || {};
+    var branch = item.branch || 'main';
+    var up = item.upstream || 'OWNER/UPSTREAM';
+    var upBranch = item.upBranch || branch;
+    return [
+      'name: sync-from-upstream',
+      'on:',
+      '  schedule:',
+      "    - cron: '0 18 * * *'   # UTC 18:00 = 北京时间次日 02:00",
+      '  workflow_dispatch:',
+      'permissions:',
+      '  contents: write',
+      'jobs:',
+      '  sync:',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - uses: actions/checkout@v4',
+      '        with:',
+      '          ref: ' + branch,
+      '          fetch-depth: 0',
+      '      - name: Fast-forward from upstream',
+      '        run: |',
+      '          git config user.name  "github-actions[bot]"',
+      '          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"',
+      '          git remote add upstream https://github.com/' + up + '.git',
+      '          git fetch upstream ' + upBranch,
+      '          git merge --ff-only upstream/' + upBranch,
+      '          git push origin ' + branch,
+      ''
+    ].join('\n');
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+    return new Promise(function (resolve, reject) {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy') ? resolve() : reject(new Error('copy failed')); }
+      catch (e) { reject(e); }
+      finally { document.body.removeChild(ta); }
+    });
+  }
+
+  /* ---------- 持久化 ---------- */
+  function persistWatch() {
+    try { localStorage.setItem(LS_WATCH, JSON.stringify(S.watch)); } catch (e) { /* ignore */ }
+  }
+
+  function persistIgnore() {
+    try { localStorage.setItem(LS_IGNORE, JSON.stringify(S.ignore)); } catch (e) { /* ignore */ }
+  }
+
+  function persistToken() {
+    try {
+      if ($('#remember').checked && S.token) localStorage.setItem(LS_TOKEN, S.token);
+      else localStorage.removeItem(LS_TOKEN);
+    } catch (e) { /* ignore */ }
+  }
+
+  function writeCache() {
+    try {
+      localStorage.setItem(LS_CACHE, JSON.stringify({
+        ts: S.scannedAt,
+        me: S.me,
+        forks: S.forks.map(function (x) {
+          return { repo: x.repo, upstream: x.upstream, branch: x.branch, upBranch: x.upBranch,
+                   htmlUrl: x.htmlUrl, upHtmlUrl: x.upHtmlUrl, pushedAt: x.pushedAt, upPushedAt: x.upPushedAt,
+                   status: x.status, checkedAt: x.checkedAt, lastError: x.lastError || null };
+        }),
+        copies: S.copies.map(function (x) {
+          return { repo: x.repo, upstream: x.upstream, branch: x.branch, upBranch: x.upBranch,
+                   htmlUrl: x.htmlUrl, upHtmlUrl: x.upHtmlUrl, pushedAt: x.pushedAt, upPushedAt: x.upPushedAt,
+                   status: x.status, checkedAt: x.checkedAt, lastError: x.lastError || null };
+        }),
+        selfMade: S.selfMade
+      }));
+    } catch (e) { /* 超出配额就放弃缓存 */ }
+  }
+
+  function readCache() {
+    try { return JSON.parse(localStorage.getItem(LS_CACHE) || 'null'); } catch (e) { return null; }
+  }
+
+  function load() {
+    try {
+      var t = localStorage.getItem(LS_TOKEN) || '';
+      if (t) {
+        S.token = t;
+        $('#token').value = t;
+        $('#remember').checked = true;
+      }
+      S.includeOrg = localStorage.getItem(LS_ORG) === '1';
+      $('#org').checked = S.includeOrg;
+    } catch (e) { /* ignore */ }
+
+    try {
+      var w = JSON.parse(localStorage.getItem(LS_WATCH) || 'null');
+      S.watch = Array.isArray(w) ? w : [{ repo: 'szboboxing/OuonnkiTV-8597e', upstream: 'Ouonnki/OuonnkiTV' }];
+    } catch (e) {
+      S.watch = [{ repo: 'szboboxing/OuonnkiTV-8597e', upstream: 'Ouonnki/OuonnkiTV' }];
+    }
+
+    try {
+      var ig = JSON.parse(localStorage.getItem(LS_IGNORE) || 'null');
+      S.ignore = Array.isArray(ig) ? ig : [];
+    } catch (e) {
+      S.ignore = [];
+    }
+
+    var c = readCache();
+    if (c) {
+      S.me = c.me || null;
+      S.forks = (c.forks || []).map(function (x) { x.kind = 'fork'; return x; });
+      S.copies = (c.copies || []).map(function (x) { x.kind = 'copy'; return x; });
+      S.selfMade = c.selfMade || [];
+      S.scannedAt = c.ts || 0;
+    }
+  }
+
+  function parseRepo(input) {
+    var v = String(input || '').trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
+    return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(v) ? v : '';
+  }
+
+  function findItem(key) {
+    var parts = key.split(':');
+    var kind = parts[0], repo = parts.slice(1).join(':');
+    var arr = kind === 'fork' ? S.forks : S.copies;
+    for (var i = 0; i < arr.length; i++) if (arr[i].repo === repo) return arr[i];
+    return null;
+  }
+
+  async function addWatch(repo, upstream) {
+    if (!parseRepo(repo) || !parseRepo(upstream)) { toast('格式应为 owner/repo', 'err'); return; }
+    if (S.watch.some(function (w) { return w.repo.toLowerCase() === repo.toLowerCase(); })) {
+      toast('已经在同步列表里了', 'err');
+      return;
+    }
+    S.watch.push({ repo: repo, upstream: upstream });
+    persistWatch();
+    var it = { repo: repo, upstream: upstream, kind: 'copy', status: null, checkedAt: 0 };
+    S.copies.push(it);
+    S.total = S.forks.length + S.copies.length;
+    render();
+    it.status = await inspectCopy(it);
+    it.checkedAt = Date.now();
+    writeCache();
+    render();
+    log('已加入副本：' + repo + ' ← ' + upstream, 'ok');
+  }
+
+  async function removeWatch(key) {
+    var item = findItem(key);
+    if (!item) return;
+    var ok = await askConfirm({
+      title: '移出 ' + item.repo,
+      bodyHtml: '<p>把它从同步列表里移出？</p><p class="dim">不会删除 GitHub 上的仓库。</p>',
+      okText: '移出',
+      danger: true
+    });
+    if (!ok) return;
+    S.watch = S.watch.filter(function (w) { return w.repo !== item.repo; });
+    S.copies = S.copies.filter(function (x) { return x.repo !== item.repo; });
+    persistWatch();
+    writeCache();
+    render();
+  }
+
+  /* ---------- 事件 ---------- */
+  function bind() {
+    $('#token').addEventListener('input', function (e) {
+      S.token = e.target.value.trim();
+      persistToken();
+      scheduleRender();
+    });
+    $('#remember').addEventListener('change', persistToken);
+    $('#filter').addEventListener('input', function (e) {
+      S.filter = e.target.value.trim().toLowerCase();
+      scheduleRender();
+    });
+    $('#org').addEventListener('change', function (e) {
+      S.includeOrg = e.target.checked;
+      try { localStorage.setItem(LS_ORG, S.includeOrg ? '1' : '0'); } catch (err) { /* ignore */ }
+    });
+    $('#btn-scan').addEventListener('click', scan);
+
+    document.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-act]');
+      if (!btn) return;
+      var act = btn.dataset.act;
+
+      if (act === 'sync') {
+        var it = findItem(btn.dataset.key);
+        if (it) syncOne(it);
+      } else if (act === 'recheck') {
+        var it2 = findItem(btn.dataset.key);
+        if (it2) recheck(it2);
+      } else if (act === 'unwatch') {
+        removeWatch(btn.dataset.key);
+      } else if (act === 'yaml') {
+        var it3 = findItem(btn.dataset.key);
+        if (!it3) return;
+        var st = (it3.status && it3.status.state) || '';
+        if (st === 'unrelated' || st === 'diverged') toast('该仓库无法 ff-only 同步，模板仅供参考', 'err');
+        copyText(yamlFor(it3)).then(function () {
+          toast('Actions 配置已复制', 'ok');
+          log(it3.repo + ' 的 Actions 配置已复制', 'ok');
+        }, function () {
+          toast('复制失败，请检查浏览器权限', 'err');
+        });
+      } else if (act === 'watch') {
+        var repo = btn.dataset.repo;
+        var up = prompt('「' + repo + '」的上游仓库是？（owner/repo，留空取消）', '');
+        if (up === null) return;
+        up = parseRepo(up);
+        if (!up) { toast('格式应为 owner/repo', 'err'); return; }
+        addWatch(repo, up);
+      } else if (act === 'page') {
+        S.page += parseInt(btn.dataset.dir, 10) || 0;
+        render();
+        var host = $('#sec-list');
+        if (host.scrollIntoView) host.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (act === 'sync-selected') {
+        syncSelected();
+      } else if (act === 'remove-selected') {
+        removeSelected();
+      } else if (act === 'select-all') {
+        var vis = visibleItems();
+        vis.forEach(function (it) { S.selected[keyOf(it)] = true; });
+        render();
+        log('已选中筛选结果 ' + vis.length + ' 个', 'info');
+      } else if (act === 'show-failed') {
+        S.filterState = 'failed';
+        S.page = 1;
+        S.selected = {};
+        render();
+      } else if (act === 'pause') {
+        if (S.batch && S.batch.paused) resumeBatch(); else pauseBatch();
+      } else if (act === 'stop') {
+        stopBatch();
+      } else if (act === 'cancel') {
+        cancelBatch();
+      } else if (act === 'workflow-help') {
+        showWorkflowHelp();
+      } else if (act === 'clear-selected') {
+        S.selected = {};
+        render();
+      } else if (act === 'unignore') {
+        S.ignore = S.ignore.filter(function (r) { return r !== btn.dataset.repo; });
+        persistIgnore();
+        render();
+        toast('已恢复，重新扫描后可见', 'ok');
+      }
+    });
+
+    document.addEventListener('change', function (ev) {
+      var el = ev.target;
+      if (!el) return;
+
+      if (el.id === 'state-filter') {
+        S.filterState = el.value;
+        S.page = 1;
+        S.selected = {};
+        render();
+        return;
+      }
+
+      if (el.id === 'sel-page') {
+        pageItems().items.forEach(function (it) {
+          var k = keyOf(it);
+          if (el.checked) S.selected[k] = true; else delete S.selected[k];
+        });
+        render();
+        return;
+      }
+
+      if (el.dataset && el.dataset.act === 'pick') {
+        if (el.checked) S.selected[el.dataset.key] = true;
+        else delete S.selected[el.dataset.key];
+        render();
+      }
+    });
+  }
+
+  load();
+  logEl = $('#log');
+  toastEl = $('#toast');
+  bind();
+  render();
+  log('就绪：填入令牌 → 扫描我的全部仓库。令牌只需 Contents 读写与 Metadata 只读。', 'info');
+
+  if (S.token && (!S.scannedAt || Date.now() - S.scannedAt > CACHE_TTL)) {
+    setTimeout(scan, 200);
+  } else if (S.scannedAt) {
+    log('已加载 ' + Math.max(1, Math.round((Date.now() - S.scannedAt) / 60000)) + ' 分钟前的扫描结果，点“扫描”可刷新。', 'info');
+  }
+})();
+</script>
+</body>
+</html>
