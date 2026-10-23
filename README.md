@@ -2,7 +2,7 @@
 
 > 一次扫描，看清所有 fork 谁落后了；勾选、批量快进，支持暂停 / 停止 / 取消。
 
-![version](https://img.shields.io/badge/version-1.1.0-blue)
+![version](https://img.shields.io/badge/version-1.2.0-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 ![dependencies](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![single file](https://img.shields.io/badge/single--file-yes-9cf)
@@ -115,9 +115,11 @@ GitHub 自带的 **Sync fork** 一次只能点一个仓库。当你 fork 了几�
 - 所有请求只发往 `api.github.com`
 - 可以只给细粒度令牌勾选指定仓库，把权限压到最小
 
-### 11. 深色 / 浅色主题一键切换
+### 11. 调色板面板：跟随系统 / 浅色 / 深色
 
-右上角 🌙/☀️ 按钮切换主题，首次打开跟随系统偏好，之后记忆选择到 localStorage。浅色主题使用 GitHub 官方浅色调色板，卡片、徽章、日志、弹窗全部适配。
+右上角调色板按钮弹出一张卡片面板，「跟随系统」是默认状态：切到「浅色」或「深色」后记住选择，处于「跟随系统」时还会监听系统主题变化实时跟随。每张卡片带彩色圆点与「当前」角标，浅色主题使用 GitHub 官方浅色调色板，卡片、徽章、日志、弹窗全部适配。
+
+面板下方还有一条「✦ 在线体验区」，把个人主页、收音机、物业台账、物业 PHP 收进来，同一个入口就能跳过去。
 
 ### 12. 一键导出扫描结果为 CSV
 
@@ -269,6 +271,7 @@ fork-sync/
 ## Roadmap
 
 - [x] 深色/浅色主题切换（v1.1）
+- [x] 调色板面板：跟随系统 / 浅色 / 深色 + 在线体验区（v1.2）
 - [x] 导出扫描结果为 CSV（v1.1）
 - [ ] 一键为选中仓库生成 Actions 配置文件
 - [ ] 支持 GitHub Enterprise 域名

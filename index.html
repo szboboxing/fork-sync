@@ -200,6 +200,37 @@
   :root[data-theme="light"] .chip.warn b{color:#9a6700}
   :root[data-theme="light"] .chip.bad b{color:#cf222e}
   :root[data-theme="light"] .syncbar{color:#9a6700}
+
+  /* ---------- 调色板面板（三态明暗 + 在线体验区） ---------- */
+  #btn-palette{padding:5px 8px}
+  #btn-palette svg{display:block}
+  #pal-panel{position:fixed;z-index:70;top:62px;right:18px;width:316px;max-width:calc(100vw - 24px);
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;
+    box-shadow:0 18px 48px #00000077;opacity:0;transform:translateY(-6px) scale(.98);
+    pointer-events:none;transition:opacity .16s,transform .16s;max-height:78vh;overflow:auto}
+  #pal-panel.show{opacity:1;transform:none;pointer-events:auto}
+  .pal-h{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;letter-spacing:.18em;
+    color:var(--dim);margin:0 0 9px}
+  #pal-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .pal-card{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;cursor:pointer;
+    background:var(--panel2);border:1px solid var(--line);color:var(--txt);font:inherit;text-align:left;
+    position:relative;transition:border-color .15s,transform .15s;text-decoration:none}
+  .pal-card:hover{border-color:var(--accent);transform:translateY(-1px);text-decoration:none}
+  .pal-card.cur{border-color:var(--accent)}
+  .pal-card.cur::after{content:"当前";position:absolute;top:4px;right:7px;font-size:8px;
+    font-family:ui-monospace,Consolas,monospace;color:var(--accent)}
+  .pal-card.app{grid-column:1/-1}
+  .pal-dot{width:15px;height:15px;border-radius:50%;flex:none;border:1.5px solid #ffffff2e}
+  .pal-nm{display:block;font-size:13px;font-weight:600;line-height:1.15}
+  .pal-en{display:block;font-family:ui-monospace,Consolas,monospace;font-size:9px;color:var(--dim);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pal-sec{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:6px 0 2px}
+  .pal-sec b{font-family:ui-monospace,Consolas,monospace;font-size:9px;letter-spacing:.16em;
+    color:var(--warn);font-weight:600;white-space:nowrap}
+  .pal-sec i{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+  @media (max-width:560px){
+    #pal-panel{top:auto;bottom:12px;left:12px;right:12px;width:auto;max-width:none}
+  }
 </style>
 </head>
 <body>
@@ -215,7 +246,9 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn ghost tiny" id="btn-export" title="导出当前扫描结果为 CSV">⬇ 导出 CSV</button>
-      <button class="btn ghost tiny" id="btn-theme" title="切换深色 / 浅色主题">🌙</button>
+      <button class="btn ghost tiny" id="btn-palette" aria-label="调色板" title="调色板 · 明暗模式与在线体验">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/><circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/><path d="M12 2a10 10 0 1 0 0 20 4 4 0 0 0 0-8 2 2 0 0 1-2-2c0-1.1.9-2 2-2h2.5a4.5 4.5 0 0 0 4.5-4.5A10 10 0 0 0 12 2z"/></svg>
+      </button>
     </div>
     <div id="account" class="account"></div>
   </header>
@@ -260,8 +293,13 @@
 
   <footer>
     <span id="rate">API 限额：—</span>
-    <span>v1.1.0 · 所有请求只发往 api.github.com；令牌不会离开本机。</span>
+    <span>v1.2.0 · 所有请求只发往 api.github.com；令牌不会离开本机。</span>
   </footer>
+</div>
+
+<div id="pal-panel" role="dialog" aria-label="调色板">
+  <div class="pal-h">✦ 调色板 · 明暗模式与在线体验</div>
+  <div id="pal-grid"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1437,31 +1475,116 @@
     render();
   }
 
-  /* ---------- 主题切换 ---------- */
-  function applyTheme(t) {
-    var light = t === 'light';
-    if (light) document.documentElement.setAttribute('data-theme', 'light');
-    else document.documentElement.removeAttribute('data-theme');
-    var btn = $('#btn-theme');
-    if (btn) btn.textContent = light ? '☀️' : '🌙';
-    try { localStorage.setItem(LS_THEME, light ? 'light' : 'dark'); } catch (e) { /* ignore */ }
+  /* ---------- 调色板：三态明暗 + 在线体验区 ---------- */
+  var MODES = [
+    { k: 'system', n: '跟随系统', e: 'System', c: '#8b98a5' },
+    { k: 'light',  n: '浅色',     e: 'Light',  c: '#e3b341' },
+    { k: 'dark',   n: '深色',     e: 'Dark',   c: '#58a6ff' }
+  ];
+  var PAL_APPS = [
+    { n: '个人主页', e: 'Personal Site',   c: '#d9b57d', u: 'https://szjack.pages.dev/' },
+    { n: '收音机',   e: 'Radio Box',       c: '#f59e0b', u: 'https://szjack.pages.dev/radio.html' },
+    { n: '物业台账', e: 'Property Ledger', c: '#3fb950', u: 'https://szjack.pages.dev/property-ledger.html' },
+    { n: '物业PHP',  e: 'Ledger PHP',      c: '#d9b57d', u: 'http://chinacn.gt.tc' }
+  ];
+
+  function themeMode() {
+    var m = '';
+    try { m = localStorage.getItem(LS_THEME) || ''; } catch (e) { /* ignore */ }
+    return (m === 'light' || m === 'dark') ? m : 'system';
   }
 
-  function toggleTheme() {
-    var current = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-    applyTheme(current);
-    log('主题切换为 ' + (current === 'light' ? '浅色' : '深色'), 'info');
+  function modeName(k) {
+    for (var i = 0; i < MODES.length; i++) if (MODES[i].k === k) return MODES[i].n;
+    return MODES[0].n;
+  }
+
+  function applyTheme() {
+    var m = themeMode();
+    var dark = m === 'system'
+      ? !(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches)
+      : m === 'dark';
+    if (dark) document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', 'light');
+    var btn = $('#btn-palette');
+    if (btn) btn.title = '调色板 · 当前：' + modeName(m);
+    paintPalette();
+  }
+
+  function setThemeMode(k) {
+    try { localStorage.setItem(LS_THEME, k); } catch (e) { /* ignore */ }
+    applyTheme();
+    log('外观切换为 ' + modeName(k), 'info');
   }
 
   function initTheme() {
-    var saved = '';
-    try { saved = localStorage.getItem(LS_THEME) || ''; } catch (e) { /* ignore */ }
-    if (!saved) {
-      // 跟随系统
-      saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    applyTheme();
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(prefers-color-scheme: light)');
+      var onSys = function () { if (themeMode() === 'system') applyTheme(); };
+      if (mq.addEventListener) mq.addEventListener('change', onSys);
+      else if (mq.addListener) mq.addListener(onSys);
     }
-    applyTheme(saved);
   }
+
+  function palCard(o) {
+    var el = document.createElement(o.u ? 'a' : 'button');
+    if (o.u) { el.href = o.u; el.target = '_blank'; el.rel = 'noopener'; }
+    else el.type = 'button';
+    el.className = 'pal-card' + (o.app ? ' app' : '') + (o.cur ? ' cur' : '');
+    var dot = document.createElement('span');
+    dot.className = 'pal-dot';
+    dot.style.background = o.c;
+    dot.style.boxShadow = '0 0 9px ' + o.c + '88';
+    var box = document.createElement('span');
+    box.style.minWidth = '0';
+    var nm = document.createElement('span');
+    nm.className = 'pal-nm';
+    nm.textContent = o.n;
+    var en = document.createElement('span');
+    en.className = 'pal-en';
+    en.textContent = o.e;
+    box.appendChild(nm); box.appendChild(en);
+    el.appendChild(dot); el.appendChild(box);
+    if (o.onClick) el.addEventListener('click', o.onClick);
+    return el;
+  }
+
+  function paintPalette() {
+    var grid = $('#pal-grid');
+    if (!grid) return;
+    var cur = themeMode();
+    grid.innerHTML = '';
+    MODES.forEach(function (o) {
+      grid.appendChild(palCard({
+        n: o.n, e: o.e, c: o.c, cur: o.k === cur,
+        onClick: function () { setThemeMode(o.k); }
+      }));
+    });
+    var sec = document.createElement('div');
+    sec.className = 'pal-sec';
+    sec.innerHTML = '<b>\u2726 在线体验区</b><i></i>';
+    grid.appendChild(sec);
+    PAL_APPS.forEach(function (o) {
+      grid.appendChild(palCard({ n: o.n, e: o.e, c: o.c, u: o.u, app: true }));
+    });
+  }
+
+  var palOpen = false;
+  function togglePalette(force) {
+    var p = $('#pal-panel');
+    if (!p) return;
+    palOpen = force === undefined ? !palOpen : force;
+    p.classList.toggle('show', palOpen);
+  }
+  document.addEventListener('click', function (ev) {
+    if (!palOpen) return;
+    if (ev.target.closest && (ev.target.closest('#pal-panel') || ev.target.closest('#btn-palette'))) return;
+    togglePalette(false);
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && palOpen) togglePalette(false);
+  });
 
   /* ---------- CSV 导出 ---------- */
   function csvEscape(v) {
@@ -1535,7 +1658,7 @@
       try { localStorage.setItem(LS_ORG, S.includeOrg ? '1' : '0'); } catch (err) { /* ignore */ }
     });
     $('#btn-scan').addEventListener('click', scan);
-    $('#btn-theme').addEventListener('click', toggleTheme);
+    $('#btn-palette').addEventListener('click', function (e) { e.stopPropagation(); togglePalette(); });
     $('#btn-export').addEventListener('click', exportCSV);
 
     document.addEventListener('click', function (ev) {
